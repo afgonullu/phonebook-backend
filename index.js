@@ -40,6 +40,23 @@ app.delete("/api/persons/:id", (req, res) => {
   }
 })
 
+app.post("/api/persons", (req, res) => {
+  if(!req.body.name) {
+    res.send("you must provide a name").end()
+  }
+
+  const newPerson = {
+    name: req.body.name,
+    number: Number(req.body.number) | 0,
+    id: Math.floor(Math.random()*10000000),
+  }
+
+  persons.push(newPerson)
+
+  res.status(200).send(`person is created with id ${newPerson.id}`)
+
+})
+
 app.get("/info", (req, res) => {
   res.send(`<div><p>${info[0]}</p><p>${info[1]}</p></div>`)
 })
