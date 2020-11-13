@@ -1,8 +1,10 @@
+require("dotenv").config()
 const express = require("express")
 const morgan = require("morgan")
 const cors = require("cors")
-let { persons } = require("./phonebook")
+// let { persons } = require("./phonebook")
 const app = express()
+const Person = require("./models/person")
 
 morgan.token("data", (req, res) => JSON.stringify(req.body))
 
@@ -14,14 +16,17 @@ app.use(
 )
 
 //data extraction
-const length = persons.length
+// const length = persons.length
 
-const date = new Date().toString()
+// const date = new Date().toString()
 
-const info = [`Phonebook has info for ${length} people.`, date]
+// const info = [`Phonebook has info for ${length} people.`, date]
 
 app.get("/api/persons", (req, res) => {
-  res.json(persons)
+  Person.find({}).then((result) => {
+    console.log(result)
+    res.json(result)
+  })
 })
 
 app.get("/api/persons/:id", (req, res) => {
@@ -90,7 +95,7 @@ app.get("/info", (req, res) => {
   res.send(`<div><p>${info[0]}</p><p>${info[1]}</p></div>`)
 })
 
-const PORT = process.env.PORT || 3001
+const PORT = process.env.PORT
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`)
 })
