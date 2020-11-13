@@ -1,9 +1,10 @@
 const express = require("express")
-const phonebook = require("./phonebook")
+const morgan = require("morgan")
 let { persons } = require("./phonebook")
 const app = express()
 
 app.use(express.json())
+app.use(morgan("tiny"))
 
 //data extraction
 const length = persons.length
