@@ -15,85 +15,140 @@ app.use(
   morgan(":method :url :status :res[content-length] - :response-time ms :data")
 )
 
-//data extraction
-// const length = persons.length
-
-// const date = new Date().toString()
-
-// const info = [`Phonebook has info for ${length} people.`, date]
-
-app.get("/api/persons", (req, res) => {
-  Person.find({}).then((result) => {
-    console.log(result)
-    res.json(result)
-  })
+app.get("/info", (req, res, next) => {
+  Person.estimatedDocumentCount()
+    .then((result) => {
+      console.log(result)
+      const date = new Date().toString()
+      res.send(
+        `<div><p>Phonebook has info for ${result} people.</p><p>${date}</p></div>`
+      )
+    })
+    .catch((error) => next(error))
 })
 
-app.get("/api/persons/:id", (req, res) => {
-  const id = Number(req.params.id)
-
-  const person = persons.find((person) => person.id === id)
-
-  if (!person) {
-    res.status(404).send(`<p>no person with id: ${id}</p>`)
-  } else {
-    res.json(person)
-  }
+app.get("/api/persons", (req, res, next) => {
+  Person.find({})
+    .then((result) => {
+      console.log(result)
+      res.json(result)
+    })
+    .catch((error) => {
+      console.log(error)
+      next(error)
+    })
 })
 
-// status code 204 doesn't allow sending a message or a json. therefore set statuscode 200
-app.delete("/api/persons/:id", (req, res) => {
-  const id = Number(req.params.id)
+app.get("/api/persons/:id", (req, res, next) => {
+  const id = req.params.id
 
-  const person = persons.find((person) => person.id === id)
-
-  if (!person) {
-    res
-      .status(404)
-      .send(`<p>no person with id: ${id}. Request to delete unsuccessful.</p>`)
-  } else {
-    persons = persons.filter((person) => person.id != id)
-    res
-      .status(200)
-      .send(`<div><p>Following person is deleted</p><p>${person}</p></div>`)
-  }
+  Person.findById(id)
+    .then((person) => {
+      if (person) {
+        res.json(person)
+      } else {
+        res.status(404).end()
+      }
+    })
+    .catch((error) => {
+      console.log(error)
+      next(error)
+    })
 })
 
 // status code 204 doesn't allow sending a message or a json. therefore set statuscode 200
-app.post("/api/persons", (req, res) => {
+app.delete("/api/persons/:id", (req, res, next) => {
+  const id = req.params.id
+
+  Person.findByIdAndRemove(id)
+    .then((result) => res.status(204).end())
+    .catch((error) => {
+      console.log(error)
+      next(error)
+    })
+})
+
+// status code 204 doesn't allow sending a message or a json. therefore set statuscode 200
+app.post("/api/persons", (req, res, next) => {
+  console.log(req.body)
   if (!req.body.name) {
-    return res.status(200).json({ error: "you must provide a name" })
+    return next({ name: "NameValidationError" })
   }
 
-  const regex = /^[A-z ]+$/
-  if (!regex.test(req.body.name)) {
-    return res.status(200).json({ error: "name can only have letters." })
-  }
+  // const regex = /^[A-z ]+$/
+  // if (!regex.test(req.body.name)) {
+  //   return res.status(200).json({ error: "name can only have letters." })
+  // }
 
-  if (!req.body.number) {
-    return res.status(200).json({ error: "you must provide a number" })
-  }
+  // if (!req.body.number) {
+  //   return res.status(200).json({ error: "you must provide a number" })
+  // }
 
-  if (!persons.every((person) => person.name != req.body.name)) {
-    return res
-      .status(200)
-      .json({ error: "the name you entered is already in the phonebook" })
-  }
+  // if (!persons.every((person) => person.name != req.body.name)) {
+  //   return res
+  //     .status(200)
+  //     .json({ error: "the name you entered is already in the phonebook" })
+  // }
 
-  const newPerson = {
+  // console.log(req.body)
+
+  console.log("here")
+  const newPerson = new Person({
     name: req.body.name,
-    number: Number(req.body.number) | 0,
-    id: Math.floor(Math.random() * 10000000),
+    number: req.body.number,
+  })
+  newPerson
+    .save()
+    .then((savedPerson) => {
+      res.json(savedPerson)
+    })
+    .catch((error) => {
+      console.log(error)
+      next(error)
+    })
+
+  // persons.push(newPerson)
+
+  // return res.status(200).send(`person is created with id ${newPerson.id}`)
+})
+
+app.put("/api/persons/:id", (req, res, next) => {
+  const id = req.params.id
+  console.log(req.body)
+
+  const person = {
+    name: req.body.name,
+    number: req.body.number,
   }
 
-  persons.push(newPerson)
-
-  return res.status(200).send(`person is created with id ${newPerson.id}`)
+  Person.findByIdAndUpdate(id, person, { new: true })
+    .then((updatedPerson) => {
+      res.json(updatedPerson)
+    })
+    .catch((error) => next(error))
 })
 
 app.get("/info", (req, res) => {
-  res.send(`<div><p>${info[0]}</p><p>${info[1]}</p></div>`)
+  res.send(`<divPhonebook><p>${info[0]}</p><p>${info[1]}</p></divPhonebook>`)
 })
+
+const errorHandler = (error, req, res, next) => {
+  console.log("errorhandler")
+  console.log(error)
+  console.log(error.name)
+
+  if (error.name === "CastError") {
+    return res.status(400).send({ error: "malformatted id" })
+  }
+
+  if (error.name === "NameValidationError") {
+    return res.status(400).send({ error: "Provide a proper name" })
+  }
+
+  next(error)
+}
+
+app.use(errorHandler)
 
 const PORT = process.env.PORT
 app.listen(PORT, () => {
