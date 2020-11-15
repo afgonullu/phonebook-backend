@@ -101,10 +101,6 @@ app.put("/api/persons/:id", (req, res, next) => {
     .catch((error) => next(error))
 })
 
-app.get("/info", (req, res) => {
-  res.send(`<divPhonebook><p>${info[0]}</p><p>${info[1]}</p></divPhonebook>`)
-})
-
 const errorHandler = (error, req, res, next) => {
   if (error.name === "CastError") {
     return res.status(400).send({ error: "malformatted id" })
