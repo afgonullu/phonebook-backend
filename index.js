@@ -2,7 +2,7 @@ require("dotenv").config()
 const express = require("express")
 const morgan = require("morgan")
 const cors = require("cors")
-// let { persons } = require("./phonebook")
+
 const app = express()
 const Person = require("./models/person")
 
@@ -56,7 +56,6 @@ app.get("/api/persons/:id", (req, res, next) => {
     })
 })
 
-// status code 204 doesn't allow sending a message or a json. therefore set statuscode 200
 app.delete("/api/persons/:id", (req, res, next) => {
   const id = req.params.id
 
@@ -68,35 +67,14 @@ app.delete("/api/persons/:id", (req, res, next) => {
     })
 })
 
-// status code 204 doesn't allow sending a message or a json. therefore set statuscode 200
 app.post("/api/persons", (req, res, next) => {
   console.log(req.body)
-  if (!req.body.name) {
-    return next({ name: "NameValidationError" })
-  }
 
-  // const regex = /^[A-z ]+$/
-  // if (!regex.test(req.body.name)) {
-  //   return res.status(200).json({ error: "name can only have letters." })
-  // }
-
-  // if (!req.body.number) {
-  //   return res.status(200).json({ error: "you must provide a number" })
-  // }
-
-  // if (!persons.every((person) => person.name != req.body.name)) {
-  //   return res
-  //     .status(200)
-  //     .json({ error: "the name you entered is already in the phonebook" })
-  // }
-
-  // console.log(req.body)
-
-  console.log("here")
   const newPerson = new Person({
     name: req.body.name,
     number: req.body.number,
   })
+
   newPerson
     .save()
     .then((savedPerson) => {
@@ -106,22 +84,17 @@ app.post("/api/persons", (req, res, next) => {
       console.log(error)
       next(error)
     })
-
-  // persons.push(newPerson)
-
-  // return res.status(200).send(`person is created with id ${newPerson.id}`)
 })
 
 app.put("/api/persons/:id", (req, res, next) => {
   const id = req.params.id
-  console.log(req.body)
 
   const person = {
     name: req.body.name,
     number: req.body.number,
   }
 
-  Person.findByIdAndUpdate(id, person, { new: true })
+  Person.findByIdAndUpdate(id, person, { new: true, runValidators: true })
     .then((updatedPerson) => {
       res.json(updatedPerson)
     })
@@ -133,16 +106,10 @@ app.get("/info", (req, res) => {
 })
 
 const errorHandler = (error, req, res, next) => {
-  console.log("errorhandler")
-  console.log(error)
-  console.log(error.name)
-
   if (error.name === "CastError") {
     return res.status(400).send({ error: "malformatted id" })
-  }
-
-  if (error.name === "NameValidationError") {
-    return res.status(400).send({ error: "Provide a proper name" })
+  } else if (error.name === "ValidationError") {
+    return res.status(400).json({ error: error.message })
   }
 
   next(error)
